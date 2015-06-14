@@ -2,7 +2,7 @@
 // @name Steam Monster Minigame Auto-upgrade
 // @namespace https://github.com/wchill/steamSummerMinigame
 // @description A script that buys upgrades in the Steam Monster Minigame for you.
-// @version 1.0.11
+// @version 1.0.15
 // @match *://steamcommunity.com/minigame/towerattack*
 // @match *://steamcommunity.com//minigame/towerattack*
 // @grant none
@@ -15,7 +15,7 @@
 (function(w) {
 "use strict";
 
-function upgradeManager() {
+var upgradeManager = (function() {
   var upgradeManagerPrefilter;
   if (!upgradeManagerPrefilter) {
     // add prefilter on first run
@@ -64,7 +64,7 @@ function upgradeManager() {
   // upgrade will be displayed in a box below the game. This can be toggled with
   // a checkbox in that box. When false, you must manually buy the upgrade displayed
   // for it to advance to a new upgrade.
-  var enableAutoUpgradeBuying = getPreferenceBoolean("enableAutoUpgradeBuying", false);
+  var enableAutoUpgradeBuying = false;//getPreferenceBoolean("enableAutoUpgradeBuying", false);
 
   /*****************
    * DO NOT MODIFY *
@@ -139,7 +139,7 @@ function upgradeManager() {
     return result;
   };
 
-  (function getElementals() {
+  var getElementals = (function() {
     var cache = false;
     return function(refresh) {
       if (!cache || refresh) {
@@ -440,12 +440,15 @@ function upgradeManager() {
     }
     if (value) {
       enableAutoUpgradeBuying = true;
+      upgradeManager();
     } else {
       enableAutoUpgradeBuying = false;
     }
   }
 
   (function createInfoBox() {
+    if (document.querySelector(".next_upgrade_span")) return;
+
     // Taken from wchill script because it looks nice
     var options_box = document.querySelector(".game_options");
 
@@ -552,7 +555,7 @@ function upgradeManager() {
       }
     }
   };
-}
+})();
 
 if (upgradeManagerTimer) w.clearTimeout(upgradeManagerTimer);
 var upgradeManagerTimer = w.setInterval(upgradeManager, 5000);
