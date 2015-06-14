@@ -526,6 +526,8 @@ if (!upgradeManagerPrefilter) {
 if (upgradeManagerTimer) w.clearTimeout(upgradeManagerTimer);
 var upgradeManagerTimer = w.setInterval(upgradeManager, 5000);
 
+}(window));
+
 function setPreference(key, value) {
   // From wchill
   try {
@@ -555,4 +557,3 @@ function getPreferenceBoolean(key, defaultValue) {
   return (getPreference(key, defaultValue.toString()) == "true");
 }
 
-}(window));
