@@ -486,12 +486,12 @@ var upgradeManager = (function() {
   /********
    * MAIN *
    ********/
-  hook(CSceneGame, 'TryUpgrade', function() {
+  hook(w.CSceneGame, 'TryUpgrade', function() {
     // if it's a valid try, we should reevaluate after the update
     if (this.m_bUpgradesBusy) next.id = -1;
   });
   
-  hook(CSceneGame, 'ChangeLevel', function() {
+  hook(w.CSceneGame, 'ChangeLevel', function() {
     // recalculate enemy DPS to see if we can survive this level
     if (timeToDie(true) < survivalTime) updateNext();
   });
@@ -505,7 +505,6 @@ var upgradeManager = (function() {
       }
     });
   }
-
 
   upgradeManagerPrefilter = function(opts, origOpts, xhr) {
     if (opts.url.match(/ChooseUpgrade/)) {
