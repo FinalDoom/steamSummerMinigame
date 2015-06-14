@@ -1,3 +1,65 @@
+// ==UserScript==
+// @name Steam Monster Minigame Auto-upgrade
+// @namespace https://github.com/wchill/steamSummerMinigame
+// @description A script that buys upgrades in the Steam Monster Minigame for you.
+// @version 1.0.0
+// @match *://steamcommunity.com/minigame/towerattack*
+// @match *://steamcommunity.com//minigame/towerattack*
+// @grant none
+// @updateURL https://raw.githubusercontent.com/finaldoom/steamSummerMinigame/master/autoUpgradeBuyer.user.js
+// @downloadURL https://raw.githubusercontent.com/finaldoom/steamSummerMinigame/master/autoUpgradeBuyer.user.js
+// ==/UserScript==
+
+// Updated/made into a userscript from https://gist.github.com/meishuu/f83ee1de2992d5fc656c by /u/FinalDoom
+
+(function(w) {
+"use strict";
+
+/***********
+ * Options *
+ ***********/
+
+// On each level, we check for the lane that has the highest enemy DPS.
+// Based on that DPS, if we would not be able to survive more than
+// `survivalTime` seconds, we should buy some armor.
+var survivalTime = 30;
+
+// To estimate the overall boost in damage from upgrading an element,
+// we sort the elements from highest level to lowest, then multiply
+// each one's level by the number in the corresponding spot to get a
+// weighted average of their effects on your overall damage per click.
+// If you don't prioritize lanes that you're strongest against, this
+// will be [0.25, 0.25, 0.25, 0.25], giving each element an equal
+// scaling. However, this defaults to [0.4, 0.3, 0.2, 0.1] under the
+// assumption that you will spend much more time in lanes with your
+// strongest elements.
+var elementalCoefficients = [0.4, 0.3, 0.2, 0.1];
+
+// How many elements do you want to upgrade? If we decide to upgrade an
+// element, we'll try to always keep this many as close in levels as we
+// can, and ignore the rest.
+var elementalSpecializations = 1;
+
+// To include passive DPS upgrades (Auto-fire, etc.) we have to scale
+// down their DPS boosts for an accurate comparison to clicking. This
+// is approximately how many clicks per second we should assume you are
+// consistently doing. If you have an autoclicker, this is easy to set.
+var clickFrequency = 20; // assume maximum of 20
+
+// Should we buy abilities? Note that Medics will always be bought since
+// it is considered a necessary upgrade.
+var enableBuyAbilities = getPreferenceBoolean("enableBuyAbilities", true);
+
+// If true, upgrades will be bought automatically. The currently targetted
+// upgrade will be displayed in a box below the game. This can be toggled with
+// a checkbox in that box. When false, you must manually buy the upgrade displayed
+// for it to advance to a new upgrade.
+var enableAutoUpgradeBuying = getPrefreenceBoolean("enableAutoUpgradeBuying", false);
+
+/*****************
+ * DO NOT MODIFY *
+ *****************/
+
 var upgradeManagerPrefilter;
 if (!upgradeManagerPrefilter) {
   // add prefilter on first run
@@ -7,47 +69,7 @@ if (!upgradeManagerPrefilter) {
   });
 }
 
-var upgradeManager = (function() {
-  /************
-   * SETTINGS *
-   ************/
-  // On each level, we check for the lane that has the highest enemy DPS.
-  // Based on that DPS, if we would not be able to survive more than
-  // `survivalTime` seconds, we should buy some armor.
-  var survivalTime = 30;
-
-  // To estimate the overall boost in damage from upgrading an element,
-  // we sort the elements from highest level to lowest, then multiply
-  // each one's level by the number in the corresponding spot to get a
-  // weighted average of their effects on your overall damage per click.
-  // If you don't prioritize lanes that you're strongest against, this
-  // will be [0.25, 0.25, 0.25, 0.25], giving each element an equal
-  // scaling. However, this defaults to [0.4, 0.3, 0.2, 0.1] under the
-  // assumption that you will spend much more time in lanes with your
-  // strongest elements.
-  var elementalCoefficients = [0.4, 0.3, 0.2, 0.1];
-
-  // How many elements do you want to upgrade? If we decide to upgrade an
-  // element, we'll try to always keep this many as close in levels as we
-  // can, and ignore the rest.
-  var elementalSpecializations = 1;
-
-  // To include passive DPS upgrades (Auto-fire, etc.) we have to scale
-  // down their DPS boosts for an accurate comparison to clicking. This
-  // is approximately how many clicks per second we should assume you are
-  // consistently doing. If you have an autoclicker, this is easy to set.
-  var clickFrequency = 20; // assume maximum of 20
-
-  // Should we buy abilities? Note that Medics will always be bought since
-  // it is considered a necessary upgrade.
-  var buyAbilities = true;
-
-  // If true, upgrades will be bought automatically. The currently targetted
-  // upgrade will be displayed in a box below the game. This can be toggled with
-  // a checkbox in that box. When false, you must manually buy the upgrade displayed
-  // for it to advance to a new upgrade.
-  var enableAutoUpgradeBuying = false;
-
+(function upgradeManager() {
   /***********
    * GLOBALS *
    ***********/
@@ -100,7 +122,7 @@ var upgradeManager = (function() {
   /***********
    * HELPERS *
    ***********/
-  var getUpgrade = function(id) {
+  function getUpgrade(id) {
     var result = null;
     if (scene.m_rgPlayerUpgrades) {
       scene.m_rgPlayerUpgrades.some(function(upgrade) {
@@ -113,7 +135,7 @@ var upgradeManager = (function() {
     return result;
   };
 
-  var getElementals = (function() {
+  (function getElementals() {
     var cache = false;
     return function(refresh) {
       if (!cache || refresh) {
@@ -125,7 +147,7 @@ var upgradeManager = (function() {
     };
   })();
 
-  var getElementalCoefficient = function(elementals) {
+  function getElementalCoefficient(elementals) {
     elementals = elementals || getElementals();
     return scene.m_rgTuningData.upgrades[4].multiplier *
       elementals.reduce(function(sum, elemental, i) {
@@ -133,7 +155,7 @@ var upgradeManager = (function() {
       }, 0);
   };
 
-  var canUpgrade = function(id) {
+  function canUpgrade(id) {
     // do we even have the upgrade?
     if (!scene.bHaveUpgrade(id)) return false;
 
@@ -150,7 +172,7 @@ var upgradeManager = (function() {
     return true;
   };
 
-  var calculateUpgradeTree = function(id, level) {
+  function calculateUpgradeTree(id, level) {
     var base_dpc = scene.m_rgTuningData.player.damage_per_click;
     var data = scene.m_rgTuningData.upgrades[id];
     var boost = 0;
@@ -180,7 +202,7 @@ var upgradeManager = (function() {
     return { boost: boost, cost: cost, required: parent };
   };
 
-  var necessaryUpgrade = function() {
+  function necessaryUpgrade() {
     var best = { id: -1, cost: 0 };
     var wanted, id, current;
     while (necessary.length > 0) {
@@ -197,9 +219,9 @@ var upgradeManager = (function() {
     return best;
   };
 
-  var nextAbilityUpgrade = function() {
+  function nextAbilityUpgrade() {
     var best = { id: -1, cost: 0 };
-    if (buyAbilities) {
+    if (enableBuyAbilities) {
       gAbilities.some(function(id) {
         if (canUpgrade(id) && getUpgrade(id).level < 1) {
           best = { id: id, cost: scene.m_rgTuningData.upgrades[id].cost };
@@ -210,7 +232,7 @@ var upgradeManager = (function() {
     return best;
   };
 
-  var bestHealthUpgrade = function() {
+  function bestHealthUpgrade() {
     var best = { id: -1, cost: 0, hpg: 0 };
     gHealthUpgrades.forEach(function(id) {
       if (!canUpgrade(id)) return;
@@ -225,7 +247,7 @@ var upgradeManager = (function() {
     return best;
   };
 
-  var bestDamageUpgrade = function() {
+  function bestDamageUpgrade() {
     var best = { id: -1, cost: 0, dpg: 0 };
     var data, cost, dpg, boost;
 
@@ -323,7 +345,7 @@ var upgradeManager = (function() {
     };
   })();
 
-  var updateNext = function() {
+  function updateNext() {
     next = necessaryUpgrade();
     if (next.id === -1) {
       if (timeToDie() < survivalTime) {
@@ -343,7 +365,36 @@ var upgradeManager = (function() {
     }
   };
 
-  var makeCheckBox = function(name, desc, state, listener) {
+  function setPreference(key, value) {
+    // From wchill
+    try {
+      if (localStorage !== 'undefined') {
+        localStorage.setItem('steamdb-minigame/' + key, value);
+      }
+    } catch (e) {
+      console.log(e); // silently ignore error
+    }
+  }
+
+  function getPreference(key, defaultValue) {
+    // From wchill
+    try {
+      if (localStorage !== 'undefined') {
+        var result = localStorage.getItem('steamdb-minigame/' + key);
+        return (result !== null ? result : defaultValue);
+      }
+    } catch (e) {
+      console.log(e); // silently ignore error
+      return defaultValue;
+    }
+  }
+
+  function getPreferenceBoolean(key, defaultValue) {
+    // From wchill
+    return (getPreference(key, defaultValue.toString()) == "true");
+  }
+
+  function makeCheckBox(name, desc, state, listener) {
     // Taken from wchill script
     var label= document.createElement("label");
     var description = document.createTextNode(desc);
@@ -362,27 +413,35 @@ var upgradeManager = (function() {
 
   function handleCheckBox(event) {
     var checkbox = event.target;
-    // Not greasemonkey for now
-    //setPreference(checkbox.name, checkbox.checked);
+    setPreference(checkbox.name, checkbox.checked);
     
-    window[checkbox.name] = checkbox.checked;
+    w[checkbox.name] = checkbox.checked;
     return checkbox.checked;
   }
-  
 
-  var toggleAutoUpgrades = function(event) {
-    var value = enableAutoUpgradeBuying;
+  function toggleEnableBuyAbilities(event) {
     if (event !== undefined) {
       value = handleCheckBox(event);
     }
     if (value) {
-      enableAutoClicker = true;
+      enableBuyAbilities = true;
     } else {
-      enableAutoClicker = false;
+      enableBuyAbilities = false;
     }
   }
 
-  var createInfoBox = function() {
+  function toggleAutoUpgrades(event) {
+    if (event !== undefined) {
+      value = handleCheckBox(event);
+    }
+    if (value) {
+      enableAutoUpgradeBuying = true;
+    } else {
+      enableAutoUpgradeBuying = false;
+    }
+  }
+
+  (function createInfoBox() {
     // Taken from wchill script because it looks nice
     var options_box = document.querySelector(".game_options");
 
@@ -401,20 +460,21 @@ var upgradeManager = (function() {
     next_box.style.boxShadow = "2px 2px 0 rgba( 0, 0, 0, 0.6 )";
     next_box.style.color = "#ededed";
 
+    next_box.appendChild(makeCheckBox("enableBuyAbilities", "Enable buying abilities", enableBuyAbilities, toggleEnableBuyAbilities));
     next_box.appendChild(makeCheckBox("enableAutoUpgradeBuying", "Enable automatic upgrade purchases", enableAutoUpgradeBuying, toggleAutoUpgrades));
 
     options_box.appendChild(next_box);
     
-  };
+  })();
 
-  var displayNext = function() {
+  function displayNext() {
     next_span = document.querySelector(".next_upgrade_span");
 
     next_span.innerHTML = scene.m_rgTuningData.upgrades[next.id].name + 
       ' (' + FormatNumberForDisplay(next.cost) + ')';
   };
 
-  var hook = function(base, method, func) {
+  function hook(base, method, func) {
     var original = method + '_upgradeManager';
     if (!base.prototype[original]) base.prototype[original] = base.prototype[method];
     base.prototype[method] = function() {
@@ -436,15 +496,13 @@ var upgradeManager = (function() {
     if (timeToDie(true) < survivalTime) updateNext();
   });
 
-  createInfoBox();
-
   upgradeManagerPrefilter = function(opts, origOpts, xhr) {
     if (opts.url.match(/ChooseUpgrade/)) {
       xhr
       .success(function() {
         // wait as short a delay as possible
         // then we re-run to figure out the next item to queue
-        window.setTimeout(upgradeManager, 0);
+        w.setTimeout(upgradeManager, 0);
        })
       .fail(function() {
         // we're desynced. wait til data refresh
@@ -494,6 +552,7 @@ var upgradeManager = (function() {
   };
 })();
 
-if (upgradeManagerTimer) window.clearTimeout(upgradeManagerTimer);
-var upgradeManagerTimer = window.setInterval(upgradeManager, 5000);
+if (upgradeManagerTimer) w.clearTimeout(upgradeManagerTimer);
+var upgradeManagerTimer = w.setInterval(upgradeManager, 5000);
 
+}(window));
