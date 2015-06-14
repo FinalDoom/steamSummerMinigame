@@ -2,7 +2,7 @@
 // @name Steam Monster Minigame Auto-upgrade
 // @namespace https://github.com/wchill/steamSummerMinigame
 // @description A script that buys upgrades in the Steam Monster Minigame for you.
-// @version 1.0.4
+// @version 1.0.5
 // @match *://steamcommunity.com/minigame/towerattack*
 // @match *://steamcommunity.com//minigame/towerattack*
 // @grant none
@@ -15,51 +15,6 @@
 (function(w) {
 "use strict";
 
-/***********
- * Options *
- ***********/
-
-// On each level, we check for the lane that has the highest enemy DPS.
-// Based on that DPS, if we would not be able to survive more than
-// `survivalTime` seconds, we should buy some armor.
-var survivalTime = 30;
-
-// To estimate the overall boost in damage from upgrading an element,
-// we sort the elements from highest level to lowest, then multiply
-// each one's level by the number in the corresponding spot to get a
-// weighted average of their effects on your overall damage per click.
-// If you don't prioritize lanes that you're strongest against, this
-// will be [0.25, 0.25, 0.25, 0.25], giving each element an equal
-// scaling. However, this defaults to [0.4, 0.3, 0.2, 0.1] under the
-// assumption that you will spend much more time in lanes with your
-// strongest elements.
-var elementalCoefficients = [0.4, 0.3, 0.2, 0.1];
-
-// How many elements do you want to upgrade? If we decide to upgrade an
-// element, we'll try to always keep this many as close in levels as we
-// can, and ignore the rest.
-var elementalSpecializations = 1;
-
-// To include passive DPS upgrades (Auto-fire, etc.) we have to scale
-// down their DPS boosts for an accurate comparison to clicking. This
-// is approximately how many clicks per second we should assume you are
-// consistently doing. If you have an autoclicker, this is easy to set.
-var clickFrequency = 20; // assume maximum of 20
-
-// Should we buy abilities? Note that Medics will always be bought since
-// it is considered a necessary upgrade.
-var enableBuyAbilities = getPreferenceBoolean("enableBuyAbilities", true);
-
-// If true, upgrades will be bought automatically. The currently targetted
-// upgrade will be displayed in a box below the game. This can be toggled with
-// a checkbox in that box. When false, you must manually buy the upgrade displayed
-// for it to advance to a new upgrade.
-var enableAutoUpgradeBuying = getPreferenceBoolean("enableAutoUpgradeBuying", false);
-
-/*****************
- * DO NOT MODIFY *
- *****************/
-
 var upgradeManagerPrefilter;
 if (!upgradeManagerPrefilter) {
   // add prefilter on first run
@@ -70,6 +25,51 @@ if (!upgradeManagerPrefilter) {
 }
 
 (function upgradeManager() {
+  /***********
+   * Options *
+   ***********/
+
+  // On each level, we check for the lane that has the highest enemy DPS.
+  // Based on that DPS, if we would not be able to survive more than
+  // `survivalTime` seconds, we should buy some armor.
+  var survivalTime = 30;
+
+  // To estimate the overall boost in damage from upgrading an element,
+  // we sort the elements from highest level to lowest, then multiply
+  // each one's level by the number in the corresponding spot to get a
+  // weighted average of their effects on your overall damage per click.
+  // If you don't prioritize lanes that you're strongest against, this
+  // will be [0.25, 0.25, 0.25, 0.25], giving each element an equal
+  // scaling. However, this defaults to [0.4, 0.3, 0.2, 0.1] under the
+  // assumption that you will spend much more time in lanes with your
+  // strongest elements.
+  var elementalCoefficients = [0.4, 0.3, 0.2, 0.1];
+
+  // How many elements do you want to upgrade? If we decide to upgrade an
+  // element, we'll try to always keep this many as close in levels as we
+  // can, and ignore the rest.
+  var elementalSpecializations = 1;
+
+  // To include passive DPS upgrades (Auto-fire, etc.) we have to scale
+  // down their DPS boosts for an accurate comparison to clicking. This
+  // is approximately how many clicks per second we should assume you are
+  // consistently doing. If you have an autoclicker, this is easy to set.
+  var clickFrequency = 20; // assume maximum of 20
+
+  // Should we buy abilities? Note that Medics will always be bought since
+  // it is considered a necessary upgrade.
+  var enableBuyAbilities = getPreferenceBoolean("enableBuyAbilities", true);
+
+  // If true, upgrades will be bought automatically. The currently targetted
+  // upgrade will be displayed in a box below the game. This can be toggled with
+  // a checkbox in that box. When false, you must manually buy the upgrade displayed
+  // for it to advance to a new upgrade.
+  var enableAutoUpgradeBuying = getPreferenceBoolean("enableAutoUpgradeBuying", false);
+
+  /*****************
+   * DO NOT MODIFY *
+   *****************/
+
   /***********
    * GLOBALS *
    ***********/
