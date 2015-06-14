@@ -15,35 +15,6 @@
 (function(w) {
 "use strict";
 
-function setPreference(key, value) {
-  // From wchill
-  try {
-    if (localStorage !== 'undefined') {
-      localStorage.setItem('steamdb-minigame/' + key, value);
-    }
-  } catch (e) {
-    console.log(e); // silently ignore error
-  }
-}
-
-function getPreference(key, defaultValue) {
-  // From wchill
-  try {
-    if (localStorage !== 'undefined') {
-      var result = localStorage.getItem('steamdb-minigame/' + key);
-      return (result !== null ? result : defaultValue);
-    }
-  } catch (e) {
-    console.log(e); // silently ignore error
-    return defaultValue;
-  }
-}
-
-function getPreferenceBoolean(key, defaultValue) {
-  // From wchill
-  return (getPreference(key, defaultValue.toString()) == "true");
-}
-
 /***********
  * Options *
  ***********/
@@ -83,7 +54,7 @@ var enableBuyAbilities = getPreferenceBoolean("enableBuyAbilities", true);
 // upgrade will be displayed in a box below the game. This can be toggled with
 // a checkbox in that box. When false, you must manually buy the upgrade displayed
 // for it to advance to a new upgrade.
-var enableAutoUpgradeBuying = getPrefreenceBoolean("enableAutoUpgradeBuying", false);
+var enableAutoUpgradeBuying = getPreferenceBoolean("enableAutoUpgradeBuying", false);
 
 /*****************
  * DO NOT MODIFY *
@@ -393,6 +364,35 @@ if (!upgradeManagerPrefilter) {
       );
     }
   };
+
+  function setPreference(key, value) {
+    // From wchill
+    try {
+      if (localStorage !== 'undefined') {
+        localStorage.setItem('steamdb-minigame/' + key, value);
+      }
+    } catch (e) {
+      console.log(e); // silently ignore error
+    }
+  }
+
+  function getPreference(key, defaultValue) {
+    // From wchill
+    try {
+      if (localStorage !== 'undefined') {
+        var result = localStorage.getItem('steamdb-minigame/' + key);
+        return (result !== null ? result : defaultValue);
+      }
+    } catch (e) {
+      console.log(e); // silently ignore error
+      return defaultValue;
+    }
+  }
+
+  function getPreferenceBoolean(key, defaultValue) {
+    // From wchill
+    return (getPreference(key, defaultValue.toString()) == "true");
+  }
 
   function makeCheckBox(name, desc, state, listener) {
     // Taken from wchill script
