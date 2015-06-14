@@ -2,7 +2,7 @@
 // @name Steam Monster Minigame Auto-upgrade
 // @namespace https://github.com/wchill/steamSummerMinigame
 // @description A script that buys upgrades in the Steam Monster Minigame for you.
-// @version 1.0.0
+// @version 1.0.1
 // @match *://steamcommunity.com/minigame/towerattack*
 // @match *://steamcommunity.com//minigame/towerattack*
 // @grant none
@@ -365,35 +365,6 @@ if (!upgradeManagerPrefilter) {
     }
   };
 
-  function setPreference(key, value) {
-    // From wchill
-    try {
-      if (localStorage !== 'undefined') {
-        localStorage.setItem('steamdb-minigame/' + key, value);
-      }
-    } catch (e) {
-      console.log(e); // silently ignore error
-    }
-  }
-
-  function getPreference(key, defaultValue) {
-    // From wchill
-    try {
-      if (localStorage !== 'undefined') {
-        var result = localStorage.getItem('steamdb-minigame/' + key);
-        return (result !== null ? result : defaultValue);
-      }
-    } catch (e) {
-      console.log(e); // silently ignore error
-      return defaultValue;
-    }
-  }
-
-  function getPreferenceBoolean(key, defaultValue) {
-    // From wchill
-    return (getPreference(key, defaultValue.toString()) == "true");
-  }
-
   function makeCheckBox(name, desc, state, listener) {
     // Taken from wchill script
     var label= document.createElement("label");
@@ -554,5 +525,34 @@ if (!upgradeManagerPrefilter) {
 
 if (upgradeManagerTimer) w.clearTimeout(upgradeManagerTimer);
 var upgradeManagerTimer = w.setInterval(upgradeManager, 5000);
+
+function setPreference(key, value) {
+  // From wchill
+  try {
+    if (localStorage !== 'undefined') {
+      localStorage.setItem('steamdb-minigame/' + key, value);
+    }
+  } catch (e) {
+    console.log(e); // silently ignore error
+  }
+}
+
+function getPreference(key, defaultValue) {
+  // From wchill
+  try {
+    if (localStorage !== 'undefined') {
+      var result = localStorage.getItem('steamdb-minigame/' + key);
+      return (result !== null ? result : defaultValue);
+    }
+  } catch (e) {
+    console.log(e); // silently ignore error
+    return defaultValue;
+  }
+}
+
+function getPreferenceBoolean(key, defaultValue) {
+  // From wchill
+  return (getPreference(key, defaultValue.toString()) == "true");
+}
 
 }(window));
