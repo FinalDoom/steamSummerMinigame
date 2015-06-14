@@ -2,7 +2,7 @@
 // @name Steam Monster Minigame Auto-upgrade
 // @namespace https://github.com/wchill/steamSummerMinigame
 // @description A script that buys upgrades in the Steam Monster Minigame for you.
-// @version 1.0.5
+// @version 1.0.6
 // @match *://steamcommunity.com/minigame/towerattack*
 // @match *://steamcommunity.com//minigame/towerattack*
 // @grant none
@@ -15,16 +15,16 @@
 (function(w) {
 "use strict";
 
-var upgradeManagerPrefilter;
-if (!upgradeManagerPrefilter) {
-  // add prefilter on first run
-  $J.ajaxPrefilter(function() {
-    // this will be defined by the end of the script
-    upgradeManagerPrefilter.apply(this, arguments);
-  });
-}
-
 (function upgradeManager() {
+  var upgradeManagerPrefilter;
+  if (!upgradeManagerPrefilter) {
+    // add prefilter on first run
+    $J.ajaxPrefilter(function() {
+      // this will be defined by the end of the script
+      upgradeManagerPrefilter.apply(this, arguments);
+    });
+  }
+
   /***********
    * Options *
    ***********/
