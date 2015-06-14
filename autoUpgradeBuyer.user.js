@@ -2,7 +2,7 @@
 // @name Steam Monster Minigame Auto-upgrade
 // @namespace https://github.com/wchill/steamSummerMinigame
 // @description A script that buys upgrades in the Steam Monster Minigame for you.
-// @version 1.0.2
+// @version 1.0.3
 // @match *://steamcommunity.com/minigame/towerattack*
 // @match *://steamcommunity.com//minigame/towerattack*
 // @grant none
@@ -14,6 +14,35 @@
 
 (function(w) {
 "use strict";
+
+function setPreference(key, value) {
+  // From wchill
+  try {
+    if (localStorage !== 'undefined') {
+      localStorage.setItem('steamdb-minigame/' + key, value);
+    }
+  } catch (e) {
+    console.log(e); // silently ignore error
+  }
+}
+
+function getPreference(key, defaultValue) {
+  // From wchill
+  try {
+    if (localStorage !== 'undefined') {
+      var result = localStorage.getItem('steamdb-minigame/' + key);
+      return (result !== null ? result : defaultValue);
+    }
+  } catch (e) {
+    console.log(e); // silently ignore error
+    return defaultValue;
+  }
+}
+
+function getPreferenceBoolean(key, defaultValue) {
+  // From wchill
+  return (getPreference(key, defaultValue.toString()) == "true");
+}
 
 /***********
  * Options *
@@ -527,33 +556,3 @@ if (upgradeManagerTimer) w.clearTimeout(upgradeManagerTimer);
 var upgradeManagerTimer = w.setInterval(upgradeManager, 5000);
 
 }(window));
-
-function setPreference(key, value) {
-  // From wchill
-  try {
-    if (localStorage !== 'undefined') {
-      localStorage.setItem('steamdb-minigame/' + key, value);
-    }
-  } catch (e) {
-    console.log(e); // silently ignore error
-  }
-}
-
-function getPreference(key, defaultValue) {
-  // From wchill
-  try {
-    if (localStorage !== 'undefined') {
-      var result = localStorage.getItem('steamdb-minigame/' + key);
-      return (result !== null ? result : defaultValue);
-    }
-  } catch (e) {
-    console.log(e); // silently ignore error
-    return defaultValue;
-  }
-}
-
-function getPreferenceBoolean(key, defaultValue) {
-  // From wchill
-  return (getPreference(key, defaultValue.toString()) == "true");
-}
-
