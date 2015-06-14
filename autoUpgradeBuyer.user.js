@@ -2,7 +2,7 @@
 // @name Steam Monster Minigame Auto-upgrade
 // @namespace https://github.com/wchill/steamSummerMinigame
 // @description A script that buys upgrades in the Steam Monster Minigame for you.
-// @version 1.0.8
+// @version 1.0.9
 // @match *://steamcommunity.com/minigame/towerattack*
 // @match *://steamcommunity.com//minigame/towerattack*
 // @grant none
@@ -16,8 +16,6 @@
 "use strict";
 
 (function upgradeManager() {
-  var upgradeManagerPrefilter;
-
   /***********
    * Options *
    ***********/
@@ -66,7 +64,6 @@
   /***********
    * GLOBALS *
    ***********/
-  var scene = w.g_Minigame.CurrentScene();
   var waitingForUpdate = false;
 
   var next = {
@@ -115,10 +112,15 @@
   /***********
    * HELPERS *
    ***********/
+
+  function s() {
+    return g_Minigame.m_CurrentScene;
+  }
+
   function getUpgrade(id) {
     var result = null;
-    if (scene.m_rgPlayerUpgrades) {
-      scene.m_rgPlayerUpgrades.some(function(upgrade) {
+    if (s().m_rgPlayerUpgrades) {
+      s().m_rgPlayerUpgrades.some(function(upgrade) {
         if (upgrade.upgrade == id) {
           result = upgrade;
           return true;
@@ -142,7 +144,7 @@
 
   function getElementalCoefficient(elementals) {
     elementals = elementals || getElementals();
-    return scene.m_rgTuningData.upgrades[4].multiplier *
+    return s().m_rgTuningData.upgrades[4].multiplier *
       elementals.reduce(function(sum, elemental, i) {
         return sum + elemental.level * elementalCoefficients[i];
       }, 0);
@@ -150,15 +152,15 @@
 
   function canUpgrade(id) {
     // do we even have the upgrade?
-    if (!scene.bHaveUpgrade(id)) return false;
+    if (!s().bHaveUpgrade(id)) return false;
 
     // does it have a required upgrade?
-    var data = scene.m_rgTuningData.upgrades[id];
+    var data = s().m_rgTuningData.upgrades[id];
     var required = data.required_upgrade;
     if (required !== undefined) {
       // is it at the required level to unlock?
       var level = data.required_upgrade_level || 1;
-      return (level <= scene.GetUpgradeLevel(required));
+      return (level <= s().GetUpgradeLevel(required));
     }
 
     // otherwise, we're good to go!
@@ -166,8 +168,8 @@
   };
 
   function calculateUpgradeTree(id, level) {
-    var base_dpc = scene.m_rgTuningData.player.damage_per_click;
-    var data = scene.m_rgTuningData.upgrades[id];
+    var base_dpc = s().m_rgTuningData.player.damage_per_click;
+    var data = s().m_rgTuningData.upgrades[id];
     var boost = 0;
     var cost = 0;
     var parent;
@@ -203,7 +205,7 @@
       id = wanted.id;
       current = getUpgrade(id);
       if (current.level < wanted.level) {
-        var data = scene.m_rgTuningData.upgrades[id];
+        var data = s().m_rgTuningData.upgrades[id];
         best = { id: id, cost: data.cost * Math.pow(data.cost_exponential_base, current.level) };
         break;
       }
@@ -217,7 +219,7 @@
     if (enableBuyAbilities) {
       gAbilities.some(function(id) {
         if (canUpgrade(id) && getUpgrade(id).level < 1) {
-          best = { id: id, cost: scene.m_rgTuningData.upgrades[id].cost };
+          best = { id: id, cost: s().m_rgTuningData.upgrades[id].cost };
           return true;
         }
       });
@@ -229,10 +231,10 @@
     var best = { id: -1, cost: 0, hpg: 0 };
     gHealthUpgrades.forEach(function(id) {
       if (!canUpgrade(id)) return;
-      var data = scene.m_rgTuningData.upgrades[id];
+      var data = s().m_rgTuningData.upgrades[id];
       var upgrade = getUpgrade(id);
       var cost = data.cost * Math.pow(data.cost_exponential_base, upgrade.level);
-      var hpg = scene.m_rgTuningData.player.hp * data.multiplier / cost;
+      var hpg = s().m_rgTuningData.player.hp * data.multiplier / cost;
       if (hpg >= best.hpg) {
         best = { id: id, cost: cost, hpg: hpg };
       }
@@ -244,19 +246,19 @@
     var best = { id: -1, cost: 0, dpg: 0 };
     var data, cost, dpg, boost;
 
-    var dpc = scene.m_rgPlayerTechTree.damage_per_click;
-    var base_dpc = scene.m_rgTuningData.player.damage_per_click;
-    var critmult = scene.m_rgPlayerTechTree.damage_multiplier_crit;
-    var critrate = scene.m_rgPlayerTechTree.crit_percentage - scene.m_rgTuningData.player.crit_percentage;
+    var dpc = s().m_rgPlayerTechTree.damage_per_click;
+    var base_dpc = s().m_rgTuningData.player.damage_per_click;
+    var critmult = s().m_rgPlayerTechTree.damage_multiplier_crit;
+    var critrate = s().m_rgPlayerTechTree.crit_percentage - s().m_rgTuningData.player.crit_percentage;
     var elementals = getElementals();
     var elementalCoefficient = getElementalCoefficient(elementals);
 
     // lazily check auto damage upgrades; assume we don't care about these
     gAutoUpgrades.forEach(function(id) {
       if (!canUpgrade(id)) return;
-      data = scene.m_rgTuningData.upgrades[id];
+      data = s().m_rgTuningData.upgrades[id];
       cost = data.cost * Math.pow(data.cost_exponential_base, getUpgrade(id).level);
-      dpg = (scene.m_rgPlayerTechTree.base_dps / clickFrequency) * data.multiplier / cost;
+      dpg = (s().m_rgPlayerTechTree.base_dps / clickFrequency) * data.multiplier / cost;
       if (dpg >= best.dpg) {
         best = { id: id, cost: cost, dpg: dpg };
       }
@@ -264,7 +266,7 @@
 
     // check Lucky Shot
     if (canUpgrade(gLuckyShot)) { // lazy check because prereq is necessary upgrade
-      data = scene.m_rgTuningData.upgrades[gLuckyShot];
+      data = s().m_rgTuningData.upgrades[gLuckyShot];
       boost = dpc * critrate * data.multiplier;
       cost = data.cost * Math.pow(data.cost_exponential_base, getUpgrade(gLuckyShot).level);
       dpg = boost / cost;
@@ -282,7 +284,7 @@
       if (dpg >= best.dpg) {
         if (result.required) {
           id = result.required;
-          data = scene.m_rgTuningData.upgrades[id];
+          data = s().m_rgTuningData.upgrades[id];
           cost = data.cost * Math.pow(data.cost_exponential_base, getUpgrade(id).level);
         }
         best = { id: id, cost: cost, dpg: dpg };
@@ -290,7 +292,7 @@
     });
 
     // check elementals
-    data = scene.m_rgTuningData.upgrades[4];
+    data = s().m_rgTuningData.upgrades[4];
     var elementalLevels = elementals.reduce(function(sum, elemental) {
       return sum + elemental.level;
     }, 1);
@@ -326,13 +328,13 @@
     var cache = false;
     return function(refresh) {
       if (cache === false || refresh) {
-        var maxHp = scene.m_rgPlayerTechTree.max_hp;
-        var enemyDps = scene.m_rgGameData.lanes.reduce(function(max, lane) {
+        var maxHp = s().m_rgPlayerTechTree.max_hp;
+        var enemyDps = s().m_rgGameData.lanes.reduce(function(max, lane) {
           return Math.max(max, lane.enemies.reduce(function(sum, enemy) {
             return sum + enemy.dps;
           }, 0));
         }, 0);
-        cache = maxHp / (enemyDps || scene.m_rgGameData.level * 4);
+        cache = maxHp / (enemyDps || s().m_rgGameData.level * 4);
       }
       return cache;
     };
@@ -352,7 +354,7 @@
     if (next.id !== -1) {
       console.log(
         'next buy:',
-        scene.m_rgTuningData.upgrades[next.id].name,
+        s().m_rgTuningData.upgrades[next.id].name,
         '(' + FormatNumberForDisplay(next.cost) + ')'
       );
     }
@@ -463,7 +465,7 @@
   function displayNext() {
     next_span = document.querySelector(".next_upgrade_span");
 
-    next_span.innerHTML = scene.m_rgTuningData.upgrades[next.id].name + 
+    next_span.innerHTML = s().m_rgTuningData.upgrades[next.id].name + 
       ' (' + FormatNumberForDisplay(next.cost) + ')';
   };
 
@@ -500,7 +502,7 @@
       .fail(function() {
         // we're desynced. wait til data refresh
         // m_bUpgradesBusy was not set to false
-        scene.m_bNeedTechTree = true;
+        s().m_bNeedTechTree = true;
         waitingForUpdate = true;
       });
     } else if (opts.url.match(/GetPlayerData/)) {
@@ -510,26 +512,16 @@
           if (message.tech_tree) {
             // done waiting! no longer busy
             waitingForUpdate = false;
-            scene.m_bUpgradesBusy = false;
+            s().m_bUpgradesBusy = false;
           }
         });
       }
     }
   };
 
-  if (!upgradeManagerPrefilter) {
-    // add prefilter on first run
-    $J.ajaxPrefilter(function() {
-      // this will be defined by the end of the script
-      upgradeManagerPrefilter.apply(this, arguments);
-    });
-  }
-
   return function() {
-    scene = w.g_Minigame.CurrentScene();
-    
     // tried to buy upgrade and waiting for reply; don't do anything
-    if (scene.m_bUpgradesBusy) return;
+    if (s().m_bUpgradesBusy) return;
     
     // no item queued; refresh stats and queue next item
     if (next.id === -1) {
@@ -541,10 +533,10 @@
     // item queued; buy if we can afford it
     if (next.id !== -1) {
       displayNext();
-      if (enableAutoUpgradeBuying && next.cost <= scene.m_rgPlayerData.gold) {
+      if (enableAutoUpgradeBuying && next.cost <= s().m_rgPlayerData.gold) {
         $J('.link').each(function() {
           if ($J(this).data('type') === next.id) {
-            scene.TryUpgrade(this);
+            s().TryUpgrade(this);
             return false;
           }
         });
